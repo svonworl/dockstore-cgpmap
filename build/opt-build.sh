@@ -8,17 +8,17 @@ fi
 
 set -u
 
+VER_BBB2="2.0.83-release-20180105121132"
+
 ## for cgpBigWig
 VER_BIODBHTS="2.9"
 VER_LIBBW="0.4.2"
-VER_CGPBIGWIG="0.5.0-rc1"
 
 # for PCAP
 VER_BWA="v0.7.17"
 VER_HTSLIB="1.7"
 VER_SAMTOOLS="1.7"
-VER_PCAP="4.1.0-rc2"
-VER_BBB2="2.0.83-release-20180105121132"
+VER_PCAP="4.1.0"
 
 if [ "$#" -lt "1" ] ; then
   echo "Please provide an installation path such as /opt/ICGC"
@@ -54,27 +54,24 @@ mkdir -p $SETUP_DIR/distro # don't delete the actual distro directory until the 
 mkdir -p $INST_PATH/bin
 cd $SETUP_DIR
 
-# make sure tools installed can see the install loc of libraries
-set +u
-export LD_LIBRARY_PATH=`echo $INST_PATH/lib:$LD_LIBRARY_PATH | perl -pe 's/:\$//;'`
-export PATH=`echo $INST_PATH/bin:$PATH | perl -pe 's/:\$//;'`
-export MANPATH=`echo $INST_PATH/man:$INST_PATH/share/man:$MANPATH | perl -pe 's/:\$//;'`
-export PERL5LIB=`echo $INST_PATH/lib/perl5:$PERL5LIB | perl -pe 's/:\$//;'`
-set -u
-
 ## biobambam2 first
+BB_INST=$INST_PATH/biobambam2
 if [ ! -e $SETUP_DIR/bbb2.sucess ]; then
   curl -sSL --retry 10 https://github.com/gt1/biobambam2/releases/download/${VER_BBB2}/biobambam2-${VER_BBB2}-x86_64-etch-linux-gnu.tar.gz > distro.tar.gz
-  tar --strip-components 3 -C distro -zxf distro.tar.gz
-  mkdir -p $INST_PATH/bin $INST_PATH/etc $INST_PATH/lib $INST_PATH/share
-  rm -f distro/bin/curl # don't let this file in SSL doesn't work
-  cp -r distro/bin/* $INST_PATH/bin/.
-  cp -r distro/etc/* $INST_PATH/etc/.
-  cp -r distro/lib/* $INST_PATH/lib/.
-  cp -r distro/share/* $INST_PATH/share/.
+  mkdir -p $BB_INST
+  tar --strip-components 3 -C $BB_INST -zxf distro.tar.gz
+  rm -f $BB_INST/bin/curl # don't let this file in SSL doesn't work
   rm -rf distro.* distro/*
   touch $SETUP_DIR/bbb2.success
 fi
+
+# make sure tools installed can see the install loc of libraries
+set +u
+export LD_LIBRARY_PATH=`echo $INST_PATH/lib:$LD_LIBRARY_PATH | perl -pe 's/:\$//;'`
+export PATH=`echo $INST_PATH/bin:$BB_INST/bin:$PATH | perl -pe 's/:\$//;'`
+export MANPATH=`echo $INST_PATH/man:$BB_INST/man:$INST_PATH/share/man:$MANPATH | perl -pe 's/:\$//;'`
+export PERL5LIB=`echo $INST_PATH/lib/perl5:$PERL5LIB | perl -pe 's/:\$//;'`
+set -u
 
 ## INSTALL CPANMINUS
 set -eux
@@ -124,24 +121,6 @@ if [ ! -e $SETUP_DIR/libBigWig.success ]; then
   make -C distro -j$CPU install prefix=$INST_PATH
   rm -rf distro.* distro/*
   touch $SETUP_DIR/libBigWig.success
-fi
-
-##### cgpBigWig installation
-if [ ! -e $SETUP_DIR/cgpBigWig.success ]; then
-  curl -sSL --retry 10 https://github.com/cancerit/cgpBigWig/archive/${VER_CGPBIGWIG}.tar.gz > distro.tar.gz
-  rm -rf distro/*
-  tar --strip-components 1 -C distro -xzf distro.tar.gz
-  make -C distro/c clean
-  make -C distro/c -j$CPU prefix=$INST_PATH HTSLIB=$INST_PATH/lib
-  cp distro/bin/bam2bedgraph $INST_PATH/bin/.
-  cp distro/bin/bwjoin $INST_PATH/bin/.
-  cp distro/bin/bam2bw $INST_PATH/bin/.
-  cp distro/bin/bwcat $INST_PATH/bin/.
-  cp distro/bin/bam2bwbases $INST_PATH/bin/.
-  cp distro/bin/bg2bw $INST_PATH/bin/.
-  cp distro/bin/detectExtremeDepth $INST_PATH/bin/.
-  rm -rf distro.* distro/*
-  touch $SETUP_DIR/cgpBigWig.success
 fi
 
 ##### DEPS for PCAP - layered on top #####
@@ -206,17 +185,3 @@ fi
 
 cd $HOME
 rm -rf $SETUP_DIR
-
-set +x
-
-echo "
-################################################################
-
-  To use the non-central tools you need to set the following
-    export LD_LIBRARY_PATH=$INST_PATH/lib:\$LD_LIBRARY_PATH
-    export PATH=$INST_PATH/bin:\$PATH
-    export MANPATH=$INST_PATH/man:$INST_PATH/share/man:\$MANPATH
-    export PERL5LIB=$INST_PATH/lib/perl5:\$PERL5LIB
-
-################################################################
-"

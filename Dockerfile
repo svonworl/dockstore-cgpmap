@@ -1,4 +1,4 @@
-FROM  ubuntu:16.04 as builder
+FROM  quay.io/wtsicgp/dockstore-cgpbigwig:1.0.0 as builder
 
 USER  root
 
@@ -18,13 +18,17 @@ RUN apt-get install -yq --no-install-recommends\
   libbz2-dev\
   liblzma-dev\
   libcurl4-gnutls-dev\
-  libncurses5-dev
+  libncurses5-dev\
+  nettle-dev\
+  libp11-kit-dev\
+  libtasn1-dev\
+  libgnutls-dev
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
 
 ENV OPT /opt/wtsi-cgp
-ENV PATH $OPT/bin:$PATH
+ENV PATH $OPT/bin:$OPT/biobambam2/bin:$PATH
 ENV PERL5LIB $OPT/lib/perl5
 ENV LD_LIBRARY_PATH $OPT/lib
 ENV LC_ALL en_US.UTF-8
@@ -55,13 +59,14 @@ RUN apt-get install -yq --no-install-recommends\
   time\
   zlib1g\
   liblzma5\
-  libncurses5
+  libncurses5\
+  p11-kit
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
 
 ENV OPT /opt/wtsi-cgp
-ENV PATH $OPT/bin:$PATH
+ENV PATH $OPT/bin:$OPT/biobambam2/bin:$PATH
 ENV PERL5LIB $OPT/lib/perl5
 ENV LD_LIBRARY_PATH $OPT/lib
 ENV LC_ALL en_US.UTF-8
